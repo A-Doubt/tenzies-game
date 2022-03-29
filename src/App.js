@@ -2,9 +2,23 @@ import Die from './components/Die';
 import './index.scss';
 import React from 'react';
 import { nanoid } from 'nanoid';
+import Confetti from 'react-confetti';
+import useWindowSize from './useWindowSize'
+
+let numOfMoves = 0;
 
 function App() {
 	const [dice, setDice] = React.useState(allNewDice());
+
+	const [tenzies, setTenzies] = React.useState(false);
+
+	React.useEffect(() => {
+		let value = dice[0].value;
+		let isWin = dice.every((die) => {
+			return die.locked && die.value === value;
+		});
+		if (isWin) setTenzies(true);
+	}, [dice]);
 
 	// createDie factory function
 	function createDie(value) {
@@ -24,13 +38,20 @@ function App() {
 	}
 
 	function rollDice() {
-		setDice((prevDice) => {
-			return prevDice.map((die) => {
-				return die.locked
-					? die
-					: createDie(Math.ceil(Math.random() * 6));
+		if (!tenzies) {
+			numOfMoves++;
+			setDice((prevDice) => {
+				return prevDice.map((die) => {
+					return die.locked
+						? die
+						: createDie(Math.ceil(Math.random() * 6));
+				});
 			});
-		});
+		} else {
+			setTenzies(false);
+			setDice(allNewDice());
+			numOfMoves = 0;
+		}
 	}
 
 	const diceElements = dice.map((die, index) => {
@@ -53,13 +74,23 @@ function App() {
 		});
 	}
 
+	let gameInfo = tenzies
+		? `YOU WON IN ${numOfMoves} ROLES!`
+		: 'Roll until all dice are the same. Click each die to lock it at its current value between rolls.';
+
+	function RenderConfetti() {
+		const { width, height } = useWindowSize();
+		return <Confetti width={width} height={height} />;
+	}
+
 	return (
 		<main>
-			<h1 className='game--h1'>Tenzies game</h1>
-			<p className='game--info'>Roll until all dice are the same. Click each die to lock it at its current value between rolls.</p>
+			{tenzies && <RenderConfetti width="800px" />}
+			<h1 className="game--h1">Tenzies</h1>
+			<p className="game--info">{gameInfo}</p>
 			<div className="dice">{diceElements}</div>
 			<button className="dice--button" onClick={rollDice}>
-				Roll dice
+				{tenzies ? 'New game' : 'Roll dice'}
 			</button>
 		</main>
 	);
